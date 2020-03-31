@@ -1,0 +1,21 @@
+
+########################
+#Unreal Generated Files#
+########################
+
+*/Build
+*/Binaries
+*/DerivedDataCache
+*/Intermediate
+*/Saved
+
+####################
+#VS Generated Files#
+####################
+*.VC.db
+Building_Escape/Building_Escape/Content/StarterContent/Architecture/Wall_500x500.uasset
+Building_Escape/Building_Escape/Content/StarterContent/
+Building_Escape/Building_Escape/Intermediate/
+Building_Escape/Building_Escape/Saved/
+Building_Escape/Building_Escape/Binaries/
+Building_Escape/Building_Escape/.vs/
