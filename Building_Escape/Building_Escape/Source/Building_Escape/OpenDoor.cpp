@@ -4,6 +4,7 @@
 #include "Components/ActorComponent.h"
 #include "GameFramework/actor.h"
 
+
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
 {
