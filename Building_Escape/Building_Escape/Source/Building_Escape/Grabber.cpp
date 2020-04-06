@@ -5,19 +5,20 @@
 #include "Runtime/Core/Public/Math/Rotator.h"
 #include "GameFramework/Actor.h"
 #include "GameFramework/Controller.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
 #include "GameFramework/PlayerController.h"
+#include "Components/PrimitiveComponent.h"
 #include "Engine/World.h"
 
 #define OUT
+
 
 // Sets default values for this component's properties
 UGrabber::UGrabber()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
-	PrimaryComponentTick.bCanEverTick = true;
-
-	// ...
+	PrimaryComponentTick.bCanEverTick = true;	
 }
 
 
@@ -26,8 +27,68 @@ void UGrabber::BeginPlay()
 {
 	Super::BeginPlay();
 
-	UE_LOG(LogTemp, Warning, TEXT("Grabber Reporting for Duty"));
+	///UE_LOG(LogTemp, Warning, TEXT("Grabber Reporting for Duty"));
+
+	FindPhysicsComponent();
+	SetupInputComponent();
+
+}
+
+void UGrabber::FindPhysicsComponent()
+{
+	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
+	if (PhysicsHandle)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Physics Handle Found"));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s Missing Physics Handle Componant"), *GetOwner()->GetName());
+	}
+}
+
+void UGrabber::SetupInputComponent()
+{
+	InputComponent = GetOwner()->FindComponentByClass<UInputComponent>();
+	if (InputComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Input Component Found"));
+		InputComponent->BindAction("Grab", IE_Pressed, this, &UGrabber::Grab);
+		InputComponent->BindAction("Grab", IE_Released, this, &UGrabber::Release);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s Missing Input Componant"), *GetOwner()->GetName());
+	}
+}
+
+
+void UGrabber::Grab()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Grab Pressed"))
+		
+	GetFirstPhysicsBodyInReach();
+
+	auto HitResult = GetFirstPhysicsBodyInReach();
+	auto ComponentToGrab = HitResult.GetComponent();
+	auto ActorHit = HitResult.GetActor();
+
+	if (ActorHit)
+	{
+		PhysicsHandle->GrabComponentAtLocationWithRotation(
+			ComponentToGrab, //ComponentToGrab
+			NAME_None, //grab what bone name, if any
+			ComponentToGrab->GetOwner()->GetActorLocation(), //grab location
+			ComponentToGrab->GetOwner()->GetActorRotation() //grab rotation
+			);
+	}
+}
+
+void UGrabber::Release()
+{
+	UE_LOG(LogTemp, Warning, TEXT("Grab Released"))
 	
+	PhysicsHandle->ReleaseComponent();
 }
 
 
@@ -36,37 +97,33 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// Get Player Viewpoint this tick
-
 	FVector PlayerViewPointLocation;
 	FRotator PlayerViewPointRotation;
-
 	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
-	OUT PlayerViewPointLocation,
-	OUT	PlayerViewPointRotation);
-
-	/*UE_LOG(LogTemp,Warning,TEXT("Location is %s, Rotation is %s"), 
-		*PlayerViewPointLocation.ToString(),
-		*PlayerViewPointRotation.ToString())*/
-
+		OUT PlayerViewPointLocation,
+		OUT	PlayerViewPointRotation
+		);
 	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
 
-	//Draw a Red Trace in the World to Visualise
-	DrawDebugLine(
+	if (PhysicsHandle->GrabbedComponent)
+	{
+		PhysicsHandle->SetTargetLocation(LineTraceEnd);
+	}
 
-		GetWorld(),
-		PlayerViewPointLocation,
-		LineTraceEnd,
-		FColor(255, 0, 0),
-		false,
-		0.0f,
-		0.0f,
-		10.0f
-	);
-	
+}
+
+FHitResult UGrabber::GetFirstPhysicsBodyInReach()const
+{
+	FVector PlayerViewPointLocation;
+	FRotator PlayerViewPointRotation;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(
+		OUT PlayerViewPointLocation,
+		OUT	PlayerViewPointRotation
+		);
+	FVector LineTraceEnd = PlayerViewPointLocation + PlayerViewPointRotation.Vector() * Reach;
 	/// Setup Query Parameters
 
-	FCollisionQueryParams TraceParameters(FName(TEXT("")), false ,GetOwner());
+	FCollisionQueryParams TraceParameters(FName(TEXT("")), false, GetOwner());
 
 	///LineTrace/Raycast out to reach distance
 
@@ -78,14 +135,16 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 		LineTraceEnd,
 		FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody),
 		TraceParameters
-	);
+		);
 
-//See what we hit
+	//See what we hit
 
 	AActor* ActorHit = Hit.GetActor();
-	if (ActorHit) 
+	if (ActorHit)
 	{
-		UE_LOG(LogTemp,Warning, TEXT("Line Trace Hit: %s"),*(ActorHit->GetName()))
+		UE_LOG(LogTemp, Warning, TEXT("Line Trace Hit: %s"), *(ActorHit->GetName()))
 	}
+
+	return Hit;
 }
 
