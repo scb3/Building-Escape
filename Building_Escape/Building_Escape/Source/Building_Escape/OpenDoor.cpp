@@ -43,7 +43,7 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	
 		
-	if (GetTotalMassOfActorsOnPlate() > 25.0f) 
+	if (GetTotalMassOfActorsOnPlate() > 20.0f) 
 	{
 		OpenDoor();
 		LastDoorOpenTime = GetWorld()->GetTimeSeconds();		
